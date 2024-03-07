@@ -6,12 +6,14 @@ library(httr2)
 
 
 
-# steam_march <- read_csv('steam checks 03_01.csv', guess_max = Inf)
+steam_march <- read.csv('steam checks 03_01.csv', colClasses =  'character')
 ## issue with accuracy closs
-steam_march <- steam_id_checks ## load from other note
+#steam_march <- steam_id_checks ## load from other note
 
 #steam_march <- steam_march %>% mutate(steamid = as.character(steamid))
-steam_march[1000,] %>% head
+steam_march[3200,] %>% head
+## i think potential errors in reading names
+
 
 steam_march$steamid[1] %>% as.character()
 steam_api_key <-
@@ -34,12 +36,13 @@ id_test <-
   split(.$rank) %>%
   map(
     .f = function(x){
-      if(nrow(x) < 100){return(x$steamid)}
-      x$steamid %>% sample(100, replace = T)
+      if(nrow(x) < 50){return(x$steamid)}
+      x$steamid %>% sample(50, replace = T)
     } 
   )
 
 id_test <- id_test %>% unlist
+
 
 ## weights for the stratified stats 
 id_test_weights <-
@@ -64,9 +67,11 @@ requests <-
   )
 
 names(requests) = id_test
-requests[310] %>% jsonlite::fromJSON() ## specifically needs jsonlite
 
-requests[310]
+
+
+requests[202] %>% jsonlite::fromJSON() ## specifically needs jsonlite
+
 
 ## Terms of service
 ##
@@ -77,25 +82,37 @@ requests[310]
 
 ## depending on stratified sample; depends on the data we get out -- there's 30 rank? 0 = 29
 ## if we stratify by ranks won't we have to make weights? 
+
+requests <- requests %>% sample() ## randomise order
 out_list <- map(
   requests, 
   .f = function(x){
-    Sys.sleep(0.2) #0.2 secs between calls 
-    jsonlite::fromJSON(x)
+    Sys.sleep(0.4) #0.4 secs between calls 
+    
+    output <- 
+      tryCatch(jsonlite::fromJSON(x), 
+               error = function(x) {
+                 data.frame(error = 'error')
+                 }
+               )
+    return(output)
   }
 )
 
 
-requests[999]
-out[990:1000]
+##which(id_test == '76561198196768218') ## okay so it will block at 4339
+
 ### will bug out
 
 ## try to get stuff, otherwise null
 out <- 
   out_list %>% map(.f = function(x) {tryCatch(x$response$games) })
-?exists
 out <- out %>% bind_rows(.id = 'steamid')
 
+## Response rate 
+(out$steamid %>% unique() %>% length()) / (requests %>% length)
+## 28% - 30% response rates -- so not great
+## steam iissues?
 out <- out %>%
   filter(appid %in% 
            c(
@@ -115,20 +132,29 @@ out %>%
   map(
     summary
   )
-## median averagge = 82 hours, T7 = 406 with a huge RH skew (mean = 939)
-## ~ 28% had no game details. 
-## 598 / 721 -- 82% played T7
+
+## median averagge = 82 hours, T7 = 304 with a huge RH skew (mean = 1133)
+## ~ 25% had no game details. 
+## 611 / 751 -- 81% played T7
 
 ## out of 100, we get 33 / 35 usuable responses 
 
-## save
-write_csv(out, 'steam data.csv')
 
 
 analysis <-
   out %>% 
   left_join(steam_id_checks) %>%
   left_join(id_test_weights)
+
+
+## save
+requests
+dir.create('steam data')
+stamp <- Sys.time() %>% gsub(x= ., ':', '-')
+save_nm <- paste0('steam data/linked steam data 03_01 (', stamp, ').csv')
+write_csv(analysis, save_nm)
+
+
 
 analysis <-
   analysis %>%
@@ -151,7 +177,7 @@ analysis %>%
     
     aes(weight = sample_weights )
   ) +
-  xlim(c(0, 500)) +
+  xlim(c(0, 300)) +
   xlab('total playtime (hours)') +
   ylab('rank (15 = Garyu)') +
   ggtitle('T8 rank by total playtime') +
@@ -168,7 +194,7 @@ stat_Tab <-
 
 
 lm(rank ~ playtime_forever + I(playtime_forever^2), analysis, subset =(game == 'T8')) %>% summary
-## Rsquared of 0.46 so pretty darn high 
+## Rsquared of 0.52 so pretty darn high 
 ## 1 hour increases rank by 0,13 
 lm(rank ~ playtime_forever + I(playtime_forever^2), analysis, subset =(game == 'T8'&playtime_forever<100)) %>% summary
 ## below 100 hours = 0.19 ranks per hour
@@ -192,33 +218,3 @@ stat_Tab %>%
 
 
 ## very linear relationship
-
-# unsed -----
-get_playtime_fn <- function(request){
-  resp <-
-    tryCatch(
-      jsonlite::fromJSON(request),
-      error = function() 'error'
-    )
-  
-  if(resp == 'error')return(NULL)
-  
-  
-  
-  resp <- 
-    resp$response$games %>%
-    filter(appid %in% 
-             c(1778820, 389730)
-    ) %>%
-    mutate(steam_id = steamid) %>%
-    select(steam_id, appid, playtime_forever)
-  return(resp)
-  
-}
-
-get_playtime_fn(id_test[1]) #awesome
-
-map(
-  id_test,
-  .f = get_playtime_fn
-)
