@@ -15,7 +15,6 @@ steam_march[3200,] %>% head
 ## i think potential errors in reading names
 
 
-steam_march$steamid[1] %>% as.character()
 steam_api_key <-
   readline(prompt = "[Instruction] Write steam api in console: ")
 
@@ -70,7 +69,7 @@ names(requests) = id_test
 
 
 
-requests[202] %>% jsonlite::fromJSON() ## specifically needs jsonlite
+requests[334] %>% jsonlite::fromJSON() ## specifically needs jsonlite
 
 
 ## Terms of service
@@ -143,12 +142,11 @@ out %>%
 
 analysis <-
   out %>% 
-  left_join(steam_id_checks) %>%
+  left_join(steam_march) %>%
   left_join(id_test_weights)
 
 
 ## save
-requests
 dir.create('steam data')
 stamp <- Sys.time() %>% gsub(x= ., ':', '-')
 save_nm <- paste0('steam data/linked steam data 03_01 (', stamp, ').csv')
@@ -170,7 +168,7 @@ analysis %>%
 ?geom_smooth
 
 analysis %>%
-  ggplot(aes(x = playtime_forever, y= rank, colour = game)) +
+  ggplot(aes(x = playtime_forever, y= rank %>% as.numeric, colour = game)) +
   geom_smooth(
     ## Note: geom_smooth does use weights but throws a misleading error mesg:
     ## see: https://github.com/tidyverse/ggplot2/issues/5053
@@ -182,39 +180,3 @@ analysis %>%
   ylab('rank (15 = Garyu)') +
   ggtitle('T8 rank by total playtime') +
   theme(legend.position = 'bottom')
-
-stat_Tab <- 
-  analysis %>%
-  group_by(rank, game) %>%
-  summarise(
-    mean_hours = playtime_forever %>% weighted.mean(w = sample_weights),
-    sd_hours = playtime_forever %>% sd(),
-    n = n()
-  )
-
-
-lm(rank ~ playtime_forever + I(playtime_forever^2), analysis, subset =(game == 'T8')) %>% summary
-## Rsquared of 0.52 so pretty darn high 
-## 1 hour increases rank by 0,13 
-lm(rank ~ playtime_forever + I(playtime_forever^2), analysis, subset =(game == 'T8'&playtime_forever<100)) %>% summary
-## below 100 hours = 0.19 ranks per hour
-lm(rank ~ playtime_forever + I(playtime_forever^2), analysis, subset =(game == 'T8'&playtime_forever>100)) %>% summary
-## above 100 hours it's like 1 hour = 0.08 
-
-## is there a soft rank slow down mechanism @garyu
-
-stat_Tab ## after rank 22 (Raijin) it gets low 
-
-stat_Tab %>%
-  filter(rank <= 22) %>%
-  ggplot(aes(x = rank, y = mean_hours, fill = game)) +
-  geom_bar(stat = 'identity', position = 'dodge')
-
-stat_Tab %>%
-  filter(game == 'T8') %>%
-  ggplot(aes(x = rank, y = mean_hours)) +
-  geom_bar(stat = 'identity', position = 'dodge')
-
-
-
-## very linear relationship
