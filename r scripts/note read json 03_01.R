@@ -5,7 +5,7 @@ library(rjson)
 jsons <- list.files('complete_JSONS_03_01', full.names = T)
 jsons[1] %>% fromJSON() ## huge number of objects -- each has 999
 ## sample 200 
-jsons <- jsons %>% sample(200)
+#jsons <- jsons %>% sample(200)
 
 march_list <- 
   #fromJSON(file = jsons[1])
@@ -22,8 +22,6 @@ march_list <-
   )
 
 ## omit things that aren't dataframe
-march_list[1]
-march_list[[1]]$replayDetailList %>% class
 ## R turns it into a list of things 
 ## We can convert to a huge data table 
 ## polarisid = ingame tekken 8 id?
@@ -33,7 +31,6 @@ march_list[[1]]$replayDetailList %>% class
 #
 
 
-march_list[[1]]
 march_df <- 
   march_list %>% bind_rows()
 march_df <- march_df$replayDetailList ## nested df 
@@ -111,6 +108,36 @@ march_df %>%
 
 ## Check ID for hours 
 march_df %>% names()
+
+march_df %>% head
+march_df$`1pPlatform` %>% table
+
+## rematches
+rematch_tab <- 
+  march_df %>%
+  group_by(`1pPlayerName`, `2pPlayerName`, battleType) %>%
+  summarise(
+    matches = n()
+  )
+
+(rematch_tab$matches > 1) %>% mean() ## 77.67% of matches are sets of 2 or more
+
+
+
+rematch_tab %>%
+  group_by(battleType) %>%
+  summarise(
+    n_matches = n(),
+    rematch = mean(matches > 1)
+  )
+## very similar rates of rematches betwen QM and ranked -- 78.5% vs 76.0%
+# 1= QM, 2 = RM, 3 = group match, 4 = player match
+
+
+match_tab$matches %>% table()
+
+## Extract steam idea 
+
 steam_id_checks <-
   march_df %>%
   filter(
@@ -125,4 +152,6 @@ steam_id_checks <-
     games = n()
   )
 
-write_csv(steam_id_checks, 'steam checks 03_01.csv')
+steam_id_checks[300,]
+#write_csv(steam_id_checks, 'steam checks 03_01.csv')
+# saveRDS(steam_id_checks, 'steam checks 03_01.rds')

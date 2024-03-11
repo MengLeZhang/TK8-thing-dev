@@ -133,3 +133,7 @@ steam_feb <- read_csv('steam checks 02_15.csv')
 
 steam_feb$steamid %in% steam_march$steamid %>% table ## ooo we can link 4110 players!
 
+## wait has he already gotten unique players? 
+unique <- read_csv('unique_players.csv')
+
+(steam_feb$steamid %in% unique$user_id) %>% table ## no -- not sure what variable field he's using
