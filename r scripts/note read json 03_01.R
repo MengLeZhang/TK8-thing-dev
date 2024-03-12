@@ -113,14 +113,21 @@ march_df %>% head
 march_df$`1pPlatform` %>% table
 
 ## rematches
+
 rematch_tab <- 
   march_df %>%
   group_by(`1pPlayerName`, `2pPlayerName`, battleType) %>%
   summarise(
-    matches = n()
+    matches = n(),
+    wins_p1 = sum(winResult == 1),
+    wins_p2 = sum(winResult == 2)
+  ) %>%
+  mutate(
+    ft2_complete = max(wins_p1, wins_p2) > 1 #basically did either of them get 2 wins or more
   )
 
-(rematch_tab$matches > 1) %>% mean() ## 77.67% of matches are sets of 2 or more
+rematch_tab %>% summary
+(rematch_tab$ft2_complete) %>% mean(na.rm = T) ## 76.5% of matches are sets of 2 or more
 
 
 
@@ -128,10 +135,11 @@ rematch_tab %>%
   group_by(battleType) %>%
   summarise(
     n_matches = n(),
-    rematch = mean(matches > 1)
+    ft2_complete = ft2_complete %>% mean(na.rm = T)
   )
-## very similar rates of rematches betwen QM and ranked -- 78.5% vs 76.0%
+## very similar rates of rematches betwen QM and ranked -- 77.6% vs 74.8%
 # 1= QM, 2 = RM, 3 = group match, 4 = player match
+## if player matches are the eligible set (91.6) then 74.8/ 91.6 = 81.2% of eligible matches aren't FT2
 
 
 match_tab$matches %>% table()
