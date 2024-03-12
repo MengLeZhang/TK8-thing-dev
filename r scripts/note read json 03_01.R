@@ -119,6 +119,7 @@ rematch_tab <-
   group_by(`1pPlayerName`, `2pPlayerName`, battleType) %>%
   summarise(
     matches = n(),
+    rank_p1 = `1pRank`[1],
     wins_p1 = sum(winResult == 1),
     wins_p2 = sum(winResult == 2)
   ) %>%
@@ -141,6 +142,25 @@ rematch_tab %>%
 # 1= QM, 2 = RM, 3 = group match, 4 = player match
 ## if player matches are the eligible set (91.6) then 74.8/ 91.6 = 81.2% of eligible matches aren't FT2
 
+ft2_rank_tab <-
+  rematch_tab %>%
+  group_by(battleType, rank_p1) %>%
+  summarise(
+    n_matches = n(),
+    ft2_complete = ft2_complete %>% mean(na.rm = T)
+  )
+
+ft2_rank_tab %>%
+  filter(battleType == 2) %>%
+  ggplot(
+    aes(x = rank_p1, y = ft2_complete)
+  ) +
+  geom_point() +
+  ylab('% completed FT2 (1 = 100%)') +
+  xlab('Player 1 rank') +
+  ggtitle(
+    'Completed FT2 % in ranked by P1 rank'
+  )
 
 match_tab$matches %>% table()
 
@@ -163,3 +183,6 @@ steam_id_checks <-
 steam_id_checks[300,]
 #write_csv(steam_id_checks, 'steam checks 03_01.csv')
 # saveRDS(steam_id_checks, 'steam checks 03_01.rds')
+
+1 / 0.75
+1.333 / 2.333
