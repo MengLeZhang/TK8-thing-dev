@@ -131,13 +131,15 @@ my_record <-
   )
 
 my_record_fit <-
-  glm(me_win ~ offset(-opp_score), data = my_record)
+  glm(me_win ~ offset(-opp_score), 
+      family = binomial(link = 'probit'), 
+      data = my_record)
 
 
 my_record_fit %>% summary
 
 pnorm(1.58)
-pnorm(1.8) ## okay so can detect diff of 2%
+pnorm(2.1) ## okay so can detect diff of 4%
 ## well that's pretty high but keep in mind it's a relative score
 ## But the SE is 0,11 so like 0.11 SD
 ## at 75% ; sqrt(0.75 * 0.25) / 5 = 8% or 0.08/ 0.5  = 0.16SD
@@ -155,6 +157,8 @@ my_record <-
 
 
 glm(me_win ~ offset(opp_score), 
+    family = binomial(link = 'probit'), 
+
     data = my_record %>%
       mutate(me_win = c(rep(1, 50), rep(0, 50)))
       ) %>% summary
@@ -176,13 +180,26 @@ empirical_df <-
   )
 
 ## result list
+eligible_df <-
+  eligible_df %>%
+  left_join(
+    z_score_tab
+  )
 
+
+sim_sample_n <- 30
 sim_res <- list()
+true_z <- 1
 for (i in 1:1e4){
+  
+  empirical_df <- 
+    eligible_df[sample(eligible_df %>% nrow(), sim_sample_n), ]
+
+  
   empirical_df <-
     empirical_df %>%
     mutate(
-      me_win = 0:1 %>% sample(100, replace = T)
+      me_win = (true_z - z + rnorm(sim_sample_n)) > 0
     )
   
   glm_z <- 
@@ -201,7 +218,31 @@ sim_res <- sim_res %>% bind_rows()
 
 sim_res %>% summary
 sim_res$glm_z %>% sd()
-sim_res$rate_z%>% sd()
+ifelse(sim_res$rate_z > 1, NA, sim_res$rate_z) %>% sd(na.rm = T)
+(sim_res$rate_z > 1) %>% table() ## okay like 6% of cases are infinity 
 
-## okay answer = the rate itself has a lower SD! 
+## okay answer = the rate itself has a lower SD! for sample 100 and 50!
+## based on true z = 0
+## rate Z is like 0.18 SD whilst rate glm is 0.258 @50
+## answer you need a lot of games 
+## question but this is assuming you play the entire run of the player base ... what if you are not?
+## or in a time period the distribution changes?? then the glm method still works whilst rate is not comparable over time 
+## how ever the real issue is the SE even at sample size 
 
+## at true z = 1 -- the rate for z is simply wrong (probably due to sample picked)
+##  The Z for win rate is pulled closer to 0 (it's ~ 0.64)
+## The SE remains similar (0.23 for glm vs .20 for rate) @ sample = 50
+## SE @100 = 0.157 for glm and 0.135 for rate -- similar difference in SE
+## true cost is pretty much time for data entry  
+
+## At sample size = 30 
+## SE for glm = 0.3, rate = 0.22 BUT 7% of cases are infinite so.. -- in small samples winrate is more efficient but still biased 
+
+## Conclusion: when z != 0 then the winrate is biased and tends towards zero. This might make it harder to see improvements 
+## therefore a tentative solution is that the z-score method is more sensitive not due to standard errors BUT due to spotting 
+##  actual differences 
+## it is similar in efficiency 
+
+## So basically from 30 games if someone improves from z = 0 to 0.1 
+## then glm method can detect it but with less accuracy
+## the rate method can detect it too but is biased towards zero
