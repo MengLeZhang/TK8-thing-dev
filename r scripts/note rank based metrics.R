@@ -51,73 +51,48 @@ eligible_df <-
   )
 
 
-## we can simply summarise the data 
+## Base Z scores on percentile of normal dist
 eligible_df <-
   eligible_df %>%
-  group_by(
-    `1pRank`, `2pRank`
-  ) %>%
+  group_by(`1pPolarisId`) %>%
   summarise(
-    n = n(),
-    p1_win = sum(winResult == 1)
-  ) %>%
-  mutate(
-    p1_rate = p1_win / n
+    rank = max(`1pRank`)
   )
 
-## save this data 
-write_csv(eligible_df, 'edgelist of wins by rank.csv')
+eligible_df <-
+  eligible_df %>%
+  mutate(
+    rank_percentiles = rank %>% cume_dist()
+  )
 
 
-## if we're super lazy we can simply run the probit
+z_score_tab <- 
+  eligible_df %>%
+  group_by(rank) %>%
+  summarise(
+    rank_percentiles = rank_percentiles[1],
+    n = n()
+  )
 
-rank_fit <-
-  glm(I(winResult == 1) ~ I(`2pRank` %>% as.factor) - 1, data = march_df, family = binomial(link = 'probit'))
+## Get Z score 
+z_score_tab <-
+  z_score_tab %>%
+  mutate(
+    z = rank_percentiles %>% qnorm()
+  )
 
-# rank_fit %>% summary
-# 
-# Call:
-#   glm(formula = I(winResult == 1) ~ I(`2pRank` %>% as.factor) - 
-#         1, family = binomial(link = "probit"), data = march_df)
-# 
-# Deviance Residuals: 
-#   Min      1Q  Median      3Q     Max  
-# -1.301  -1.170  -1.012   1.164   1.657  
-# 
-# Coefficients:
-#   Estimate Std. Error z value Pr(>|z|)    
-# I(`2pRank` %>% as.factor)0   0.179554   0.005312  33.799  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)1   0.133827   0.011741  11.398  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)2   0.126516   0.010339  12.237  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)3   0.079819   0.008393   9.510  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)4   0.085906   0.008290  10.363  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)5   0.071322   0.008178   8.722  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)6   0.047957   0.006620   7.244 4.36e-13 ***
-#   I(`2pRank` %>% as.factor)7   0.043739   0.008428   5.190 2.11e-07 ***
-#   I(`2pRank` %>% as.factor)8   0.058978   0.006337   9.307  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)9   0.155982   0.005310  29.376  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)10  0.043049   0.005435   7.920 2.37e-15 ***
-#   I(`2pRank` %>% as.factor)11 -0.010959   0.005300  -2.068 0.038664 *  
-#   I(`2pRank` %>% as.factor)12  0.064205   0.004376  14.673  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)13  0.019150   0.004661   4.109 3.98e-05 ***
-#   I(`2pRank` %>% as.factor)14  0.044336   0.004492   9.870  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)15 -0.012889   0.003426  -3.762 0.000169 ***
-#   I(`2pRank` %>% as.factor)16 -0.092327   0.004475 -20.630  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)17 -0.125863   0.004761 -26.436  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)18 -0.133069   0.004777 -27.858  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)19 -0.125283   0.006076 -20.618  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)20 -0.139645   0.006782 -20.591  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)21 -0.185108   0.006875 -26.926  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)22 -0.179462   0.009806 -18.301  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)23 -0.189204   0.011550 -16.381  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)24 -0.197202   0.014672 -13.441  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)25 -0.223869   0.018367 -12.189  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)26 -0.303965   0.023086 -13.167  < 2e-16 ***
-#   I(`2pRank` %>% as.factor)27 -0.250758   0.033893  -7.398 1.38e-13 ***
-#   I(`2pRank` %>% as.factor)28 -0.357884   0.047031  -7.610 2.75e-14 ***
-#   I(`2pRank` %>% as.factor)29 -0.663450   0.060938 -10.887  < 2e-16 ***
-(rank_fit %>% summary)$coef
-write.csv((rank_fit %>% summary)$coef, 'rank baselines from probit.csv')
+## truncate scores to +- 1.96
+z_score_tab <-
+  z_score_tab %>%
+  mutate(
+    z = ifelse(z > 1.96, 1.96, z),
+    z = ifelse(z < -1.96, -1.96, z)
+  )
+
+## save the data 
+
+
+write.csv(z_score_tab, 'rank z scores.csv')
 
 
 ### how to use ... say we played some matches 
@@ -131,11 +106,11 @@ my_record <-
 my_record <-
   my_record %>%
   mutate(
-    opp_score = rank_fit$coefficients[opp_rank + 1]
+    opp_score = z_score_tab$z[opp_rank + 1]
   )
 
 my_record_fit <-
-  glm(me_win ~ offset(opp_score), data = my_record)
+  glm(me_win ~ offset(-opp_score), data = my_record)
 
 
 my_record_fit %>% summary
@@ -152,14 +127,17 @@ my_record <-
 my_record <-
   my_record %>%
   mutate(
-    opp_score = rank_fit$coefficients[opp_rank + 1]
+    opp_score = z_score_tab$z[opp_rank + 1]
   )
 
 my_record_fit <-
-  glm(me_win ~ offset(opp_score), data = my_record)
+  glm(me_win ~ offset(-opp_score), data = my_record)
 
 
 my_record_fit %>% summary
+
+pnorm(1.58)
+pnorm(1.8) ## okay so can detect diff of 2%
 ## well that's pretty high but keep in mind it's a relative score
 
 ## simmulation?
@@ -169,7 +147,7 @@ my_record <-
     opp_rank = 0:29 %>% sample(100, replace = T)
   ) %>%
   mutate(
-    opp_score = rank_fit$coefficients[opp_rank + 1]
+    opp_score = z_score_tab$z[opp_rank + 1]
   )
 
 
@@ -184,10 +162,6 @@ glm(me_win ~ offset(opp_score),
 ) %>% summary
 
 ## 5% diff test
-## diff = 0.62498 - 0.57498 = 0.05 which is roughly 1 SE (se = 0,056) so no
-## sqrt(0.25) / 10. 5% would be the SE for win rate
-## hmm ... i guess this is because the simulation win rate is 50% uniform! 
-
-
+## not super accurate at the 50% rate -- maybe much more useful for a small sample
 my_record_fit %>% summary
 
