@@ -245,4 +245,6 @@ ifelse(sim_res$rate_z > 1, NA, sim_res$rate_z) %>% sd(na.rm = T)
 
 ## So basically from 30 games if someone improves from z = 0 to 0.1 
 ## then glm method can detect it but with less accuracy
-## the rate method can detect it too but is biased towards zero
+
+## idea: why not Z score for adjustment for ranked and win rate converted to Z for QM
+## however rank tends to fluctuate slowly hmm
