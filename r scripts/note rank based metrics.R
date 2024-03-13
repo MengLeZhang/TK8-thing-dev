@@ -162,4 +162,32 @@ my_record_fit <-
 my_record_fit %>% summary
 ## well that's pretty high but keep in mind it's a relative score
 
-##
+## simmulation?
+## Essentially in 100 games -- if our winrate rises from 50% to 55% can we detect a diff?
+my_record <-
+  data.frame(
+    opp_rank = 0:29 %>% sample(100, replace = T)
+  ) %>%
+  mutate(
+    opp_score = rank_fit$coefficients[opp_rank + 1]
+  )
+
+
+glm(me_win ~ offset(opp_score), 
+    data = my_record %>%
+      mutate(me_win = c(rep(1, 50), rep(0, 50)))
+      ) %>% summary
+
+glm(me_win ~ offset(opp_score), 
+    data = my_record %>%
+      mutate(me_win = c(rep(1, 60), rep(0, 40)))
+) %>% summary
+
+## 5% diff test
+## diff = 0.62498 - 0.57498 = 0.05 which is roughly 1 SE (se = 0,056) so no
+## sqrt(0.25) / 10. 5% would be the SE for win rate
+## hmm ... i guess this is because the simulation win rate is 50% uniform! 
+
+
+my_record_fit %>% summary
+
