@@ -143,7 +143,7 @@ pnorm(2.1) ## okay so can detect diff of 4%
 ## well that's pretty high but keep in mind it's a relative score
 ## But the SE is 0,11 so like 0.11 SD
 ## at 75% ; sqrt(0.75 * 0.25) / 5 = 8% or 0.08/ 0.5  = 0.16SD
-
+## around dan 19 (flame ruler) -- maybe +- 1 rank
 
 ## simmulation?
 ## Essentially in 100 games -- if our winrate rises from 50% to 55% can we detect a diff?
@@ -248,3 +248,5 @@ ifelse(sim_res$rate_z > 1, NA, sim_res$rate_z) %>% sd(na.rm = T)
 
 ## idea: why not Z score for adjustment for ranked and win rate converted to Z for QM
 ## however rank tends to fluctuate slowly hmm
+## however I guess the Z score system can be used to determine rank is relatively few games
+## the WR system will be more biased towards the median
