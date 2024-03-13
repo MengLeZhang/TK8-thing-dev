@@ -139,6 +139,9 @@ my_record_fit %>% summary
 pnorm(1.58)
 pnorm(1.8) ## okay so can detect diff of 2%
 ## well that's pretty high but keep in mind it's a relative score
+## But the SE is 0,11 so like 0.11 SD
+## at 75% ; sqrt(0.75 * 0.25) / 5 = 8% or 0.08/ 0.5  = 0.16SD
+
 
 ## simmulation?
 ## Essentially in 100 games -- if our winrate rises from 50% to 55% can we detect a diff?
@@ -156,12 +159,49 @@ glm(me_win ~ offset(opp_score),
       mutate(me_win = c(rep(1, 50), rep(0, 50)))
       ) %>% summary
 
-glm(me_win ~ offset(opp_score), 
-    data = my_record %>%
-      mutate(me_win = c(rep(1, 60), rep(0, 40)))
-) %>% summary
+## in theory due to the SE -- the SE is 0.15 population SD
+## whilst in 100 games, 5% is the winrate (sqrt(0.5*0.5) / 10 ) SE which is equal to 0.1 SD 
 
-## 5% diff test
-## not super accurate at the 50% rate -- maybe much more useful for a small sample
-my_record_fit %>% summary
+glm(0:1 %>% sample(100, replace = T) ~1) %>% summary
+
+## Let's just check out the sample size and SE
+## Sample it 
+## convert win rate to Z scores 
+empirical_df <- 
+ eligible_df[101:200, ]
+empirical_df <-
+  empirical_df %>% 
+  left_join(
+    z_score_tab
+  )
+
+## result list
+
+sim_res <- list()
+for (i in 1:1e4){
+  empirical_df <-
+    empirical_df %>%
+    mutate(
+      me_win = 0:1 %>% sample(100, replace = T)
+    )
+  
+  glm_z <- 
+    glm(me_win ~ offset(-z), 
+        family = binomial(link = 'probit'), 
+        data = empirical_df)
+  
+  glm_z <- glm_z$coefficients[1]
+  rate_z <- empirical_df$me_win %>% mean() %>% qnorm()
+  
+  sim_res[[i]] <-
+    data.frame(glm_z = glm_z, rate_z = rate_z)
+
+}
+sim_res <- sim_res %>% bind_rows()
+
+sim_res %>% summary
+sim_res$glm_z %>% sd()
+sim_res$rate_z%>% sd()
+
+## okay answer = the rate itself has a lower SD! 
 
