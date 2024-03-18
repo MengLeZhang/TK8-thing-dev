@@ -95,6 +95,10 @@ z_score_tab <-
 write.csv(z_score_tab, 'rank z scores.csv')
 
 
+# restart -----------------------------------------------------------------
+z_score_tab <- 'rank z scores.csv' %>% read_csv()
+
+
 ### how to use ... say we played some matches 
 my_record <-
   data.frame(
@@ -173,51 +177,75 @@ glm(0:1 %>% sample(100, replace = T) ~1) %>% summary
 ## convert win rate to Z scores 
 empirical_df <- 
  eligible_df[101:200, ]
-empirical_df <-
-  empirical_df %>% 
-  left_join(
-    z_score_tab
-  )
 
-## result list
-eligible_df <-
-  eligible_df %>%
-  left_join(
-    z_score_tab
-  )
+## result list -based
+# eligible_df <-
+#   eligible_df %>%
+#   left_join(
+#     z_score_tab
+#   )
+# 
+# 
+##
 
+# simulation --------------------------------------------------------------
 
+## Test in ranked
+## bias of estimator and estimator over time
+
+?left_join
 sim_sample_n <- 30
 sim_res <- list()
 true_z <- 1
+improve_z <- 0.2 ## improvement
 for (i in 1:1e4){
   
-  empirical_df <- 
-    eligible_df[sample(eligible_df %>% nrow(), sim_sample_n), ]
+  ## real distribution
+  # empirical_df <- 
+  #   eligible_df[sample(eligible_df %>% nrow(), sim_sample_n), ]
 
+  ## rank red- purple range
+  empirical_df <-
+    data.frame(
+      z = z_score_tab$z[16:19 + 1] %>% sample(size = sim_sample_n, replace = T)
+    ) 
+  
+  
   
   empirical_df <-
     empirical_df %>%
     mutate(
-      me_win = (true_z - z + rnorm(sim_sample_n)) > 0
+      me_win_1 = (true_z - z + rnorm(sim_sample_n)) > 0,
+      me_win_2 = (true_z + improve_z - z + rnorm(sim_sample_n)) > 0
     )
   
-  glm_z <- 
-    glm(me_win ~ offset(-z), 
+  glm_z_1 <- 
+    glm(me_win_1 ~ offset(-z), 
         family = binomial(link = 'probit'), 
         data = empirical_df)
   
-  glm_z <- glm_z$coefficients[1]
-  rate_z <- empirical_df$me_win %>% mean() %>% qnorm()
+  glm_z_2 <- glm_z_1 %>% update(me_win_2 ~ .)
+  
   
   sim_res[[i]] <-
-    data.frame(glm_z = glm_z, rate_z = rate_z)
+    data.frame(
+      glm_z1 = glm_z_1$coefficients[1], 
+      glm_z2 = glm_z_2$coefficients[1], 
+      rate_z1 = empirical_df$me_win_1 %>% mean() %>% qnorm(),
+      rate_z2 = empirical_df$me_win_2 %>% mean() %>% qnorm()
+      ) %>%
+    mutate(
+      glm_diff = glm_z2 - glm_z1,
+      rate_diff = rate_z2 - rate_z1
+    )
 
 }
+
 sim_res <- sim_res %>% bind_rows()
 
 sim_res %>% summary
-sim_res$glm_z %>% sd()
+sim_res %>% 
+  sapply(sd)
 ifelse(sim_res$rate_z > 1, NA, sim_res$rate_z) %>% sd(na.rm = T)
 (sim_res$rate_z > 1) %>% table() ## okay like 6% of cases are infinity 
 
@@ -250,3 +278,26 @@ ifelse(sim_res$rate_z > 1, NA, sim_res$rate_z) %>% sd(na.rm = T)
 ## however rank tends to fluctuate slowly hmm
 ## however I guess the Z score system can be used to determine rank is relatively few games
 ## the WR system will be more biased towards the median
+
+## 18/3  test of methods in ranked
+## rationale: which method is the est for determine absolute and relative performance in a rank range where
+## 1) true z = above average (~top 15%) 2) rabk is purple/ red (closish to true dist) and 3) improvement is modest (0.2) between periods
+## simulation: 2 Z values true_z = performance at baseline improve_z is improvement
+## key metrics: z values at various periods and diff in Z scores
+## Answer: 
+## 1. The rate (converted to Z score) is way off as a measure of a where a person is in the rank distribution
+## 2. The diff in Z score is however almost exactly the same and kind of unbiased for both estimators... similar efficiency
+## But of the winrate converted to Z score is much easier to calulate
+## Conclusion: For improvements -- use winrate. For initial baselining to rank dist = z score
+# glm_z1            glm_z2          rate_z1            rate_z2           glm_diff           rate_diff      
+# Min.   :0.08804   Min.   :0.2188   Min.   :-0.96742   Min.   :-0.8416   Min.   :-1.221663   Min.   :-1.1944  
+# 1st Qu.:0.83296   1st Qu.:1.0464   1st Qu.:-0.25335   1st Qu.: 0.0000   1st Qu.:-0.001149   1st Qu.: 0.0000  
+# Median :0.99538   Median :1.2067   Median :-0.08365   Median : 0.1679   Median : 0.184687   Median : 0.1774  
+# Mean   :0.99238   Mean   :1.2093   Mean   :-0.07616   Mean   : 0.1346   Mean   : 0.216918   Mean   : 0.2107  
+# 3rd Qu.:1.15310   3rd Qu.:1.3690   3rd Qu.: 0.08365   3rd Qu.: 0.2533   3rd Qu.: 0.439055   3rd Qu.: 0.4243  
+# Max.   :2.16936   Max.   :2.2030   Max.   : 1.11077   Max.   : 1.1108   Max.   : 1.618261   Max.   : 1.5903  
+
+### SD
+# glm_z1    glm_z2   rate_z1   rate_z2  glm_diff rate_diff 
+# 0.2398430 0.2406499 0.2376709 0.2381739 0.3402452 0.3305505 
+
