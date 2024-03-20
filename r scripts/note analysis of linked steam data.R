@@ -28,6 +28,13 @@ analysis_df <-
     .f = function(x) x[1] #take the first record to elimiante duplicates 
   ) 
 
+## Check of missingness 
+missingness_df <-
+  analysis_df %>%
+  group_by(rank) %>%
+  summarise(n = n())
+## No real diff in access to steam profiles
+
 ## ids of old head players -- anyone with over 100 hours in T7
 legacy_ids <- 
   analysis_df %>%
