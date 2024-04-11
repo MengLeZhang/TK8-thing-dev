@@ -6,12 +6,12 @@ library(httr2)
 
 
 
-steam_march <- read.csv('steam checks 03_01.csv', colClasses =  'character')
+steam_april <- read.csv('steam checks 04_06.csv', colClasses =  'character')
 ## issue with accuracy closs
-#steam_march <- steam_id_checks ## load from other note
+#steam_april <- steam_id_checks ## load from other note
 
-#steam_march <- steam_march %>% mutate(steamid = as.character(steamid))
-steam_march[3200,] %>% head
+#steam_april <- steam_april %>% mutate(steamid = as.character(steamid))
+steam_april %>% tail
 ## i think potential errors in reading names
 
 
@@ -31,7 +31,7 @@ steam_api_key <-
 ### use fromJSON to direct get from url
 ## stratifed sample
 id_test <- 
-  steam_march %>% 
+  steam_april %>% 
   split(.$rank) %>%
   map(
     .f = function(x){
@@ -45,13 +45,13 @@ id_test <- id_test %>% unlist
 
 ## weights for the stratified stats 
 id_test_weights <-
-  steam_march %>%
+  steam_april %>%
   group_by(rank) %>%
   summarise(
     n = n()
   ) %>%
   mutate(
-    sample_weights = n / nrow(steam_march)
+    sample_weights = n / nrow(steam_april)
   )
 
 
@@ -125,12 +125,16 @@ out <- out %>%
 ## tekken 8 app id = 1778820
 ## tekken 7 id =  389730
 out ## from check steam pages manually 0 means game hours are hidden
+
+
 out %>% 
   filter(playtime_forever > 0) %>% ## people hiding hours
   split(.$appid) %>%
   map(
     summary
   )
+
+out
 
 ## median averagge = 82 hours, T7 = 304 with a huge RH skew (mean = 1133)
 ## ~ 25% had no game details. 
@@ -142,14 +146,14 @@ out %>%
 
 analysis <-
   out %>% 
-  left_join(steam_march) %>%
+  left_join(steam_april) %>%
   left_join(id_test_weights)
 
 
 ## save
 dir.create('steam data')
 stamp <- Sys.time() %>% gsub(x= ., ':', '-')
-save_nm <- paste0('steam data/linked steam data 03_01 (', stamp, ').csv')
+save_nm <- paste0('steam data/linked steam data 06_04 (', stamp, ').csv')
 write_csv(analysis, save_nm)
 
 
@@ -160,11 +164,26 @@ analysis <-
   mutate(
     game = ifelse(appid == '1778820', 'T8', 'T7')
   )
-analysis
+
+rank_times <- 
+  analysis %>% 
+  filter(playtime_forever > 0) %>% ## people hiding hours
+  group_by(rank, game) %>%
+  summarise(
+    mean = mean(playtime_forever),
+    median = median(playtime_forever),
+    n = n()
+  )
+
+
 analysis %>%
+  mutate(rank = rank ) %>%
   #  filter(game == 'T7')%>%
-  ggplot(aes(y = playtime_forever, x= game)) +
-  geom_boxplot()
+  ggplot(aes(y = playtime_forever, x = rank)) +
+  geom_boxplot(outlier.shape = NA) +
+  facet_grid(game ~ ., scales = 'free')
+?geom_boxplot
+?facet_grid
 ?geom_smooth
 
 analysis %>%
@@ -175,7 +194,7 @@ analysis %>%
     
     aes(weight = sample_weights )
   ) +
-  xlim(c(0, 300)) +
+  xlim(c(0, 500)) +
   xlab('total playtime (hours)') +
   ylab('rank (15 = Garyu)') +
   ggtitle('T8 rank by total playtime') +
