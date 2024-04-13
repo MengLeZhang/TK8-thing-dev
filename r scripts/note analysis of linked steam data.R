@@ -4,6 +4,10 @@ library(tidyverse)
 
 linked_path <- list.files('steam data', full.names = T)
 
+linked_path <- 
+  linked_path[linked_path %>% grepl(pattern = '06_04')]
+
+
 
 analysis_df <-
   linked_path %>% 
@@ -55,12 +59,30 @@ legacy_mid_ids <-
   )
 
 
+library(spatstat)
 ### Stats 
 analysis_df %>%
   group_by(game) %>%
   summarise(
-    time_played = weighted.mean(playtime_forever, w = sample_weights)
+    time_played_mean = weighted.mean(playtime_forever, w = sample_weights),
+    time_played_median = weighted.median(playtime_forever, w = sample_weights)
     )
+## median is interest   
+analysis_df %>%
+  split(.$game) %>%
+  map(
+    .f = function(x) 
+      weighted.quantile(x$playtime_forever, w = x$sample_weights, probs=seq(0,1,0.10), na.rm = TRUE) %>% round(0)
+  )
+##   
+# $T7
+# 0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100% 
+# 0    16    38    70   115   205   372   545   880  1498 10717 
+# 
+# $T8
+# 0%  10%  20%  30%  40%  50%  60%  70%  80%  90% 100% 
+# 1   29   47   65   82  101  119  148  189  246  773 
+
 
 ## 1284 / 1614 T8 players had experience from T7, 79.5%
 
@@ -76,7 +98,7 @@ analysis_df %>%
     
     aes(weight = sample_weights )
   ) +
-  xlim(c(0, 300)) +
+  xlim(c(0, 400)) +
   xlab('total playtime (hours)') +
   ylab('rank (15 = Garyu)') +
   ggtitle('T8 rank by total playtime') +
