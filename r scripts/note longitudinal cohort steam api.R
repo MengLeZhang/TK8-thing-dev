@@ -115,5 +115,6 @@ out
 dir.create('steam data')
 stamp <- Sys.time() %>% gsub(x= ., ':', '-')
 save_nm <- paste0('steam data/linked steam data march cohort (', stamp, ').csv')
-write_csv(analysis, save_nm)
+write_csv(out, save_nm)
 
+save_nm

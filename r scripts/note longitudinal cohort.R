@@ -7,7 +7,12 @@ linked_path <- list.files('steam data', full.names = T)
 linked_path <- 
   linked_path[linked_path %>% grepl(pattern = '03_01')]
 
+cohort_hours_april <-
+  'steam data/linked steam data march cohort (2024-04-20 12-02-44).csv' %>%
+  read_csv()
 
+cohort_hours_april %>% summary
+ ## ah a whole bunch nuber played last 2 weeks
 
 analysis_df <-
   linked_path %>% 
