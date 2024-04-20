@@ -110,7 +110,7 @@ joined_df_t8 <-
   filter(game == 'T8') %>%
   mutate(
     rank_diff = rank_apr - rank,
-    time_dff = playtime_forever_apr - playtime_forever
+    time_diff = playtime_forever_apr - playtime_forever
   )
 
 joined_df_t8 %>% summary ## most increased rank by 3 but mean increase is 57 extra hours, median = 39
@@ -121,7 +121,7 @@ improv_tab <-
   group_by(rank) %>%
   summarise(
     rank_diff_mean = rank_diff %>% mean(na.rm = T),
-    time_diff_mean = time_dff %>% mean(na.rm = T),
+    time_diff_mean = time_diff %>% mean(na.rm = T),
     valid_n = sum(!(rank_diff %>% is.na))
   )
 
@@ -131,3 +131,11 @@ improv_tab <-
 ## way above median and mean -- 
 ## data initally collected on 7/3 and hours recollected 20/4
 ## ~43 days -- so they play liek 2 horus per day
+joined_df_t8
+lm(rank_diff ~ time_diff, data = joined_df_t8, subset = time_diff > 0, weights = sample_weights) %>% summary ## hilarious no difference 
+## so in general people increase their rank by 2 but time spent affected it by 0,007! 
+
+lm(rank_diff ~ time_diff, data = joined_df_t8, subset = (rank > 14 & time_diff > 0), weights = sample_weights) %>% summary
+## for Garyu .. time spend increases ranked by 0.004 but overally not really effects 
+
+## conclusion pure time spent is not a good predictor of rank climbing .. similar gradients to crossectional data
