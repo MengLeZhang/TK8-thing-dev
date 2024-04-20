@@ -7,18 +7,19 @@ linked_path <- list.files('steam data', full.names = T)
 linked_path <- 
   linked_path[linked_path %>% grepl(pattern = '03_01')]
 
-cohort_hours_april <-
-  'steam data/linked steam data march cohort (2024-04-20 12-02-44).csv' %>%
-  read_csv()
 
-cohort_hours_april %>% summary
- ## ah a whole bunch nuber played last 2 weeks
 
 analysis_df <-
   linked_path %>% 
   map_dfr(
     .f = function(x) read.csv(x, colClasses = 'character')
   )
+
+cohort_hours_april <-
+  'steam data/linked steam data march cohort (2024-04-20 12-02-44).csv' %>%
+  read.csv(colClasses = 'character')
+
+
 
 ### cleaning + removing duplicated 
 
@@ -38,6 +39,25 @@ analysis_df <-
   ) 
 
 ### We have 2898 entries 
+
+## join times -----
+
+cohort_hours_april %>% summary
+## ah a whole bunch nuber played last 2 weeks
+cohort_hours_april <-
+  cohort_hours_april %>%
+  rename(
+    playtime_forever_apr = playtime_forever,
+    playtime_2wk_apr = playtime_2weeks
+  ) %>%
+  mutate(
+    playtime_forever_apr = playtime_forever_apr %>% as.numeric,
+    playtime_2wk_apr = playtime_2wk_apr %>% as.numeric
+  )
+
+analysis_df <-
+  analysis_df %>%
+  left_join(cohort_hours_april)
 
 ### Load in april data 
 
@@ -79,7 +99,8 @@ joined_df <-
 joined_df %>%
   group_by(steamid) %>%
   summarise(
-    prop.missing = rank_apr %>% is.na %>% mean
+    prop.missing_rank = rank_apr %>% is.na %>% mean,
+    prop.missing_apr = playtime_forever_apr %>% is.na %>% mean
     ) %>%
   summary
 ## 64% are missing .. pretty good recapture rate of almsot 1/3
@@ -88,20 +109,25 @@ joined_df_t8 <-
   joined_df %>%
   filter(game == 'T8') %>%
   mutate(
-    rank_diff = rank_apr - rank
+    rank_diff = rank_apr - rank,
+    time_dff = playtime_forever_apr - playtime_forever
   )
 
-joined_df_t8 %>% summary ## most increased rank by 3
+joined_df_t8 %>% summary ## most increased rank by 3 but mean increase is 57 extra hours, median = 39
 
 improv_tab <- 
   joined_df_t8 %>% 
+  filter(! (rank_diff %>% is.na)) %>%
   group_by(rank) %>%
   summarise(
     rank_diff_mean = rank_diff %>% mean(na.rm = T),
+    time_diff_mean = time_dff %>% mean(na.rm = T),
     valid_n = sum(!(rank_diff %>% is.na))
   )
 
 ## actually from the data -- people do improve by 2 rank or so above garyu!
 ## sample gets much higher as things go up
-
-
+## BUT this is a self selected sample as the time increase is huge! 80 or so hours in purple
+## way above median and mean -- 
+## data initally collected on 7/3 and hours recollected 20/4
+## ~43 days -- so they play liek 2 horus per day
