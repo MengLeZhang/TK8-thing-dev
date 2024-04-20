@@ -40,22 +40,23 @@ missingness_df <-
 ## No real diff in access to steam profiles
 
 ## ids of old head players -- anyone with over 100 hours in T7
-legacy_ids <- 
-  analysis_df %>%
-  filter(
-    game == 'T7'
-  ) %>%
-  filter(
-    playtime_forever > 100
-  )
 
-legacy_mid_ids <- 
+t7only <- 
   analysis_df %>%
-  filter(
-    game == 'T7'
+  filter(game == 'T7') %>%
+  select(steamid, playtime_forever) %>%
+  rename(t7hours = playtime_forever)
+
+analysis_df <-
+  analysis_df %>% 
+  left_join(t7only) %>% 
+  replace_na(
+    list(t7hours = 0)
   ) %>%
-  filter(
-    playtime_forever %>% between(100, 800)
+  mutate(
+    t7legacy = 'a. < 100',
+    t7legacy = ifelse(t7hours %>% between (100, 800), 'b. 100 - 800', t7legacy),
+    t7legacy = ifelse(t7hours > 1000, 'c. > 1000', t7legacy)
   )
 
 
@@ -65,7 +66,10 @@ analysis_df %>%
   group_by(game) %>%
   summarise(
     time_played_mean = weighted.mean(playtime_forever, w = sample_weights),
-    time_played_median = weighted.median(playtime_forever, w = sample_weights)
+    time_played_median = weighted.median(playtime_forever, w = sample_weights),
+    time_played_mean_2wks = weighted.mean(playtime_2weeks %>% as.numeric, w = sample_weights, na.rm = T),
+    time_played_median_2wks = weighted.median(playtime_2weeks, w = sample_weights),
+    n = n()
     )
 ## median is interest   
 analysis_df %>%
@@ -84,14 +88,12 @@ analysis_df %>%
 # 1   29   47   65   82  101  119  148  189  246  773 
 
 
-## 1284 / 1614 T8 players had experience from T7, 79.5%
+## in feb 1284 / 1614 T8 players had experience from T7, 79.5%
+## in apr 1120/1388 = 80.7% so similar
 
 analysis_df %>%
-#  filter(rank > 4) %>%
-#  filter(!(steamid %in% legacy_ids$steamid))  %>% ##// newer player
-#  filter((steamid %in% legacy_ids$steamid))  %>% ##// T7 players 
-#  filter(steamid %in% legacy_mid_ids$steamid) %>%  ##// mid level
-  ggplot(aes(x = playtime_forever, y= rank %>% as.numeric, colour = game)) +
+  filter(game == 'T8') %>%
+  ggplot(aes(x = playtime_forever, y= rank %>% as.numeric, colour = t7legacy)) +
   geom_smooth(
     ## Note: geom_smooth does use weights but throws a misleading error mesg:
     ## see: https://github.com/tidyverse/ggplot2/issues/5053
@@ -104,10 +106,14 @@ analysis_df %>%
   ggtitle('T8 rank by total playtime') +
   theme(legend.position = 'bottom')
 
-## if we actually filter to newer player it take way over 100 hours to get garyu
-## older players will take ~ 70 hours
-## slower growth at 100 hours is real -- and almst linear
+## yup definitely a slower growth for player below 1000 after 100 hours 
 
+
+### plot by legacy --- 
+
+
+
+####----
 stat_Tab <- 
   analysis_df %>%
   group_by(rank, game) %>%
@@ -120,17 +126,17 @@ stat_Tab <-
 ## filterr out beginner ranks 
 
 
-lm(rank ~ playtime_forever + I(playtime_forever^2), 
+lm(rank ~ playtime_forever + I(playtime_forever^2) + t7legacy, 
    analysis_df, 
    subset =(game == 'T8'),
    weights = sample_weights
    ) %>% summary
 ## Rsquared of 0.32 so pretty darn high 
-## 1 hour increases rank by 0,09 (moe ~ 0.8 - 1.0)
+## 1 hour increases rank by 0,05 
 
 
 lm(
-  rank ~ playtime_forever, #+ I(playtime_forever ^ 2),
+  rank ~ playtime_forever + t7legacy, #+ I(playtime_forever ^ 2),
   analysis_df,
   subset = (game == 'T8' & playtime_forever < 100),
   weights = sample_weights
@@ -140,7 +146,7 @@ lm(
 
 
 lm(
-  rank ~ playtime_forever, #+ I(playtime_forever ^ 2),
+  rank ~ playtime_forever + t7legacy, #+ I(playtime_forever ^ 2),
   analysis_df,
   subset = (game == 'T8' & playtime_forever > 100),
   weights = sample_weights
