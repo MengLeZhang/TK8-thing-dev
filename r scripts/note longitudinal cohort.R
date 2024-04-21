@@ -114,7 +114,24 @@ joined_df_t8 <-
   )
 
 joined_df_t8 %>% summary ## most increased rank by 3 but mean increase is 57 extra hours, median = 39
+joined_df_t8$rank_diff %>% sd(na.rm = T)
+joined_df_t8$time_diff %>% sd(na.rm = T) ## okay good SD for time so that will help any analysis
 
+## Check sample selection bias on times 
+
+joined_df_t8 %>%
+  group_by(is.na(rank_diff)) %>%
+  summarise(
+    time_diff_mean  = time_diff %>% mean(na.rm = T), 
+    time_diff_sd = time_diff %>% sd(na.rm = T),
+    little_time = mean(time_diff < 3, na.rm = T), ## under 3 hours
+    n = n()
+  )
+## okay big selection bias for obvious reasons -- we are less likely to pick up ranks 
+## for those tho put less time in 
+## good variance though -- we have 575 available data points
+
+joined_df_t8
 improv_tab <- 
   joined_df_t8 %>% 
   filter(! (rank_diff %>% is.na)) %>%
@@ -124,6 +141,27 @@ improv_tab <-
     time_diff_mean = time_diff %>% mean(na.rm = T),
     valid_n = sum(!(rank_diff %>% is.na))
   )
+
+## Graphing the data ---------------------
+
+
+joined_df_t8 %>%
+  filter(game == 'T8') %>%
+  ggplot(aes(x = time_diff, y= rank_diff %>% as.numeric)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth(
+    ## Note: geom_smooth does use weights but throws a misleading error mesg:
+    ## see: https://github.com/tidyverse/ggplot2/issues/5053
+    
+    aes(weight = sample_weights )
+  ) +
+  xlim(c(0, 400)) +
+  xlab('playtime increase (hours)') +
+  ylab('rank difference') +
+  ggtitle('T8 rank by total playtime') +
+  theme(legend.position = 'bottom')
+
+### ooo generally 2 ranks of increase but honestly only an increase under 100 hours
 
 ## actually from the data -- people do improve by 2 rank or so above garyu!
 ## sample gets much higher as things go up
@@ -138,4 +176,9 @@ lm(rank_diff ~ time_diff, data = joined_df_t8, subset = time_diff > 0, weights =
 lm(rank_diff ~ time_diff, data = joined_df_t8, subset = (rank > 14 & time_diff > 0), weights = sample_weights) %>% summary
 ## for Garyu .. time spend increases ranked by 0.004 but overally not really effects 
 
-## conclusion pure time spent is not a good predictor of rank climbing .. similar gradients to crossectional data
+lm(rank_diff ~ time_diff, data = joined_df_t8, subset = (rank > 14 & time_diff < 80), weights = sample_weights) %>% summary
+## okay much more optimistic if we cut to where most of the data is 
+## 0.06 ranks per hour but you need to put in the hours
+
+## conclusion pure time spent is not a good predictor of rank climbing beyond a certain amount of time
+## something like 0
