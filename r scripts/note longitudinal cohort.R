@@ -16,7 +16,7 @@ analysis_df <-
   )
 
 cohort_hours_april <-
-  'steam data/linked steam data march cohort (2024-04-20 12-02-44).csv' %>%
+  'steam data/linked steam data march cohort (2024-05-11 08-55-29).csv' %>%
   read.csv(colClasses = 'character')
 
 
@@ -119,11 +119,28 @@ joined_df_t8$time_diff %>% sd(na.rm = T) ## okay good SD for time so that will h
 
 ## Check sample selection bias on times 
 
+## see graph of play time in last 2 week 
+joined_df_t8 %>% 
+  filter(rank  >= 15) %>%
+  ggplot(aes(x = playtime_2wk_apr)) +
+  geom_density()
+
+joined_df_t8 %>% 
+#  filter(rank  >= 15) %>%
+  ggplot(aes(y = playtime_2wk_apr, x = (rank >= 15))) +
+  geom_boxplot()
+
+## basically the median player and above and how much they play 
+## median for those who were median rank or above is like 20 per 2 weeks or so
+
+
 joined_df_t8 %>%
   group_by(is.na(rank_diff)) %>%
   summarise(
-    time_diff_mean  = time_diff %>% mean(na.rm = T), 
+    time_diff_mean  = time_diff %>% mean(na.rm = T),
+    time_diff_median  = time_diff %>% median(na.rm = T),
     time_diff_sd = time_diff %>% sd(na.rm = T),
+    playtime_2wk_apr_median = playtime_2wk_apr %>% median(na.rm = T),
     little_time = mean(time_diff < 3, na.rm = T), ## under 3 hours
     n = n()
   )
