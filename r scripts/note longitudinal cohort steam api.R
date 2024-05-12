@@ -79,6 +79,22 @@ out <- out %>% bind_rows(.id = 'steamid')
 (out$steamid %>% unique() %>% length()) / (requests %>% length)
 ## 96.7%
 ## steam iissues?
+
+
+# create a variable for all games -----------------------------------------
+all_games_df <-
+  out %>%
+  group_by(steamid) %>%
+  summarise(
+    appid = 'all steam games',
+    playtime_forever = sum(playtime_forever, na.rm = T) / 60,
+    playtime_2weeks = sum(playtime_2weeks, na.rm = T) / 60
+  )
+
+
+### end
+
+## Filter to T8 and T7
 out <- out %>%
   filter(appid %in% 
            c(
@@ -94,6 +110,13 @@ out <- out %>%
 out ## from check steam pages manually 0 means game hours are hidden
 
 
+## add final hhours
+out <-
+  out %>% 
+  mutate(appid = as.character(appid)) %>%
+  bind_rows(all_games_df)
+
+
 out %>% 
   filter(playtime_forever > 0) %>% ## people hiding hours
   split(.$appid) %>%
@@ -101,15 +124,10 @@ out %>%
     summary
   )
 
-out
-
-## median averagge = 82 hours, T7 = 304 with a huge RH skew (mean = 1133)
-## ~ 25% had no game details. 
-## 611 / 751 -- 81% played T7
-
-## out of 100, we get 33 / 35 usuable responses 
-
-
+## Median T7 = 245 hours 
+## median T8 = 129 hours
+## median T8 2 weeks = 10.8 
+## median all steam 2 weeks = 30 hours
 
 ## save
 dir.create('steam data')

@@ -16,7 +16,8 @@ analysis_df <-
   )
 
 cohort_hours_april <-
-  'steam data/linked steam data march cohort (2024-05-11 08-55-29).csv' %>%
+ "steam data/linked steam data march cohort (2024-05-12 13-07-26).csv" %>%
+#  'steam data/linked steam data march cohort (2024-05-11 08-55-29).csv' %>%
   read.csv(colClasses = 'character')
 
 
@@ -30,7 +31,11 @@ analysis_df <-
     games = games %>% as.numeric(),
     sample_weights = sample_weights %>% as.numeric(),
     playtime_forever = playtime_forever %>% as.numeric(),
-    game = ifelse(appid == '1778820', 'T8', 'T7')
+    
+    game = appid,
+    game = ifelse(appid == '1778820', 'T8', game),
+    game = ifelse(appid == '389730', 'T7', game)
+    
   ) %>%
   filter(playtime_forever > 0) %>% ## filter 0 hours players -- steam privacy 
   group_by(steamid, appid) %>%
@@ -39,6 +44,55 @@ analysis_df <-
   ) 
 
 ### We have 2898 entries 
+## Summary of cohort hours 
+cohort_hours_april  %>%
+  replace_na(list(playtime_2weeks = '0') ) %>%
+  group_by(appid) %>%
+  summarise(
+    playtime_forever_mean = mean(playtime_forever %>% as.numeric, na.rm = T),
+    playtime_forever_quartiles = 
+      playtime_forever %>% as.numeric() %>% round(0) %>%
+      quantile( c(0.25, 0.5, 0.75)  ) %>% 
+      paste(sep = '| ', collapse = '| '),
+    playtime_2weeks_quartiles = 
+      playtime_2weeks %>% as.numeric() %>% round(0) %>%
+      quantile( c(0.25, 0.5, 0.75), na.rm = T  ) %>% 
+      paste(sep = '| ', collapse = '| '),
+  ) 
+
+## okay so median time for all video games is like 26 hours in 2 weeks ( I think this actually lower due to some data issues)
+## 0| 3| 16 
+## two week play stats  = 7| 26| 53  
+
+
+t8_only_df <- 
+  cohort_hours_april %>%
+  replace_na(list(playtime_2weeks = '0') ) %>%
+  filter(appid == '1778820') %>%
+  mutate(
+    playtime_forever = playtime_forever %>% as.numeric(),
+    playtime_2weeks = playtime_2weeks %>% as.numeric()
+  )
+
+t8_only_df$playtime_forever %>% quantile(seq(0, 1, 0.1)) %>% round(0)
+## okay I'm now in the 75 percentile for houyrs in T8
+t8_only_df$playtime_2weeks %>% quantile(seq(0, 1, 0.1), na.rm = T) %>% round(0)
+## 80th percntile spent 22 hours (but may also play other games) .. more than half didn't play in 2 weeks 
+
+
+## all games
+
+all_only_df <- 
+  cohort_hours_april %>%
+  replace_na(list(playtime_2weeks = '0') ) %>%
+  filter(appid == 'all steam games') %>%
+  mutate(
+    playtime_forever = playtime_forever %>% as.numeric(),
+    playtime_2weeks = playtime_2weeks %>% as.numeric()
+  )
+
+all_only_df$playtime_2weeks %>% quantile(seq(0, 1, 0.1), na.rm = T) %>% round(0)
+
 
 ## join times -----
 
