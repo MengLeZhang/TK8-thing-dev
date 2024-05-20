@@ -108,8 +108,11 @@ rematch_tab %>% summary
 
 ## Extract steam idea 
 
+may_df$battleType %>% table
+
 steam_id_checks <-
   may_df %>%
+  filter(battleType == 2) %>%
   filter(
     `X1pPlatform` == 3
   ) %>%
@@ -121,6 +124,7 @@ steam_id_checks <-
       max(`X1pRank`),
     games = n()
   )
+
 
 steam_id_checks[300,]
 write_csv(steam_id_checks, 'steam checks 05_11.csv')
