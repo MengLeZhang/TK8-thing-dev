@@ -6,12 +6,12 @@ library(httr2)
 
 
 
-steam_april <- read.csv('steam checks 04_06.csv', colClasses =  'character')
+steam_may <- read.csv('steam checks 05_11.csv', colClasses =  'character')
 ## issue with accuracy closs
-#steam_april <- steam_id_checks ## load from other note
+#steam_may <- steam_id_checks ## load from other note
 
-#steam_april <- steam_april %>% mutate(steamid = as.character(steamid))
-steam_april %>% tail
+#steam_may <- steam_may %>% mutate(steamid = as.character(steamid))
+steam_may %>% tail
 ## i think potential errors in reading names
 
 
@@ -31,7 +31,7 @@ steam_api_key <-
 ### use fromJSON to direct get from url
 ## stratifed sample
 id_test <- 
-  steam_april %>% 
+  steam_may %>% 
   split(.$rank) %>%
   map(
     .f = function(x){
@@ -45,13 +45,13 @@ id_test <- id_test %>% unlist
 
 ## weights for the stratified stats 
 id_test_weights <-
-  steam_april %>%
+  steam_may %>%
   group_by(rank) %>%
   summarise(
     n = n()
   ) %>%
   mutate(
-    sample_weights = n / nrow(steam_april)
+    sample_weights = n / nrow(steam_may)
   )
 
 
@@ -69,7 +69,7 @@ names(requests) = id_test
 
 
 
-requests[334] %>% jsonlite::fromJSON() ## specifically needs jsonlite
+requests[1349] %>% jsonlite::fromJSON() ## specifically needs jsonlite
 
 
 ## Terms of service
@@ -146,14 +146,14 @@ out
 
 analysis <-
   out %>% 
-  left_join(steam_april) %>%
+  left_join(steam_may) %>%
   left_join(id_test_weights)
 
 
 ## save
 dir.create('steam data')
 stamp <- Sys.time() %>% gsub(x= ., ':', '-')
-save_nm <- paste0('steam data/linked steam data 06_04 (', stamp, ').csv')
+save_nm <- paste0('steam data/linked steam data 11_05 (', stamp, ').csv')
 write_csv(analysis, save_nm)
 
 
@@ -175,16 +175,6 @@ rank_times <-
     n = n()
   )
 
-
-analysis %>%
-  mutate(rank = rank ) %>%
-  #  filter(game == 'T7')%>%
-  ggplot(aes(y = playtime_forever, x = rank)) +
-  geom_boxplot(outlier.shape = NA) +
-  facet_grid(game ~ ., scales = 'free')
-?geom_boxplot
-?facet_grid
-?geom_smooth
 
 analysis %>%
   ggplot(aes(x = playtime_forever, y= rank %>% as.numeric, colour = game)) +

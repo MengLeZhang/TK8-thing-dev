@@ -2,10 +2,11 @@
 
 library(tidyverse)
 
+
 linked_path <- list.files('steam data', full.names = T)
 
 linked_path <- 
-  linked_path[linked_path %>% grepl(pattern = '06_04')]
+  linked_path[linked_path %>% grepl(pattern = '11_05')]
 
 
 
@@ -81,12 +82,11 @@ analysis_df %>%
 ##   
 # $T7
 # 0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100% 
-# 0    16    38    70   115   205   372   545   880  1498 10717 
+# 0    13    34    66   112   176   279   442   734  1321 11311 
 # 
 # $T8
 # 0%  10%  20%  30%  40%  50%  60%  70%  80%  90% 100% 
-# 1   29   47   65   82  101  119  148  189  246  773 
-
+# 1   42   69   90  118  141  173  210  247  334 1424 
 
 ## in feb 1284 / 1614 T8 players had experience from T7, 79.5%
 ## in apr 1120/1388 = 80.7% so similar
@@ -100,11 +100,13 @@ analysis_df %>%
     
     aes(weight = sample_weights )
   ) +
-  xlim(c(0, 400)) +
+  xlim(c(0, 500)) + # 500 = 6 months or so
   xlab('total playtime (hours)') +
   ylab('rank (15 = Garyu)') +
   ggtitle('T8 rank by total playtime') +
-  theme(legend.position = 'bottom')
+  theme(legend.position = 'bottom') +
+  geom_hline(yintercept = 19, alpha = 0.5) + #Flame ruler
+  geom_hline(yintercept = 21, alpha = 0.5) # Fujin 
 
 ## yup definitely a slower growth for player below 1000 after 100 hours 
 
