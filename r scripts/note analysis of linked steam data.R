@@ -57,7 +57,7 @@ analysis_df <-
   mutate(
     t7legacy = 'a. < 100',
     t7legacy = ifelse(t7hours %>% between (100, 800), 'b. 100 - 800', t7legacy),
-    t7legacy = ifelse(t7hours > 1000, 'c. > 1000', t7legacy)
+    t7legacy = ifelse(t7hours > 800, 'c. > 800', t7legacy)
   )
 
 
@@ -90,6 +90,13 @@ analysis_df %>%
 
 ## in feb 1284 / 1614 T8 players had experience from T7, 79.5%
 ## in apr 1120/1388 = 80.7% so similar
+
+analysis_df %>%
+  filter(game == 'T8') %>%
+  group_by(t7legacy) %>%
+  summarise(
+    n = n()
+  )
 
 analysis_df %>%
   filter(game == 'T8') %>%
