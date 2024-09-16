@@ -6,7 +6,7 @@ library(tidyverse)
 linked_path <- list.files('steam data', full.names = T)
 
 linked_path <- 
-  linked_path[linked_path %>% grepl(pattern = '11_05')]
+  linked_path[linked_path %>% grepl(pattern = '06-10')]
 
 
 
@@ -79,17 +79,46 @@ analysis_df %>%
     .f = function(x) 
       weighted.quantile(x$playtime_forever, w = x$sample_weights, probs=seq(0,1,0.10), na.rm = TRUE) %>% round(0)
   )
-##   
+
 # $T7
 # 0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100% 
-# 0    13    34    66   112   176   279   442   734  1321 11311 
+# 0    10    30    58   104   172   284   485   755  1457 15303 
 # 
 # $T8
 # 0%  10%  20%  30%  40%  50%  60%  70%  80%  90% 100% 
-# 1   42   69   90  118  141  173  210  247  334 1424 
+# 3   43   67   92  118  142  169  209  258  353 2354 
 
 ## in feb 1284 / 1614 T8 players had experience from T7, 79.5%
 ## in apr 1120/1388 = 80.7% so similar
+
+## two weeks
+analysis_df %>%
+  split(.$game) %>%
+  map(
+    .f = function(x) 
+      weighted.quantile(x$playtime_2weeks, w = x$sample_weights, probs=seq(0,1,0.10), na.rm = TRUE) %>% round(0)
+  )
+
+# $T7
+# 0%  10%  20%  30%  40%  50%  60%  70%  80%  90% 100% 
+# 0    0    0    1    1    1    1    2    2    5   12 
+# 
+# $T8
+# 0%  10%  20%  30%  40%  50%  60%  70%  80%  90% 100% 
+# 0    1    1    3    5    8   11   16   21   32  190 
+
+## two weeks by legacy
+analysis_df %>%
+  filter(game == 'T8') %>%
+  split(.$t7legacy) %>%
+  map(
+    .f = function(x) 
+      weighted.quantile(x$playtime_2weeks, w = x$sample_weights, probs=seq(0,1,0.10), na.rm = TRUE) %>% round(0)
+  )
+
+
+####
+
 
 analysis_df %>%
   filter(game == 'T8') %>%

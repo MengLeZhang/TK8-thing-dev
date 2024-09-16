@@ -78,6 +78,7 @@ out <- out %>% bind_rows(.id = 'steamid')
 ## Response rate 
 (out$steamid %>% unique() %>% length()) / (requests %>% length)
 ## 96.7%
+## Sept: 94%
 ## steam iissues?
 
 
@@ -91,7 +92,16 @@ all_games_df <-
     playtime_2weeks = sum(playtime_2weeks, na.rm = T) / 60
   )
 
-
+all_games_df %>% summary
+all_games_df$playtime_2weeks %>% quantile(1:10/10)
+## dsitrivution for all game
+## Setp.
+# 10%        20%        30%        40%        50%        60%        70%        80% 
+#   0.000000   1.133333   6.760000  14.806667  22.383333  30.476667  42.263333  55.353333 
+# 90%       100% 
+#   76.823333 362.083333
+## Overall 60th percentile is 30 hours over 2 weeks 
+## sept
 ### end
 
 ## Filter to T8 and T7
@@ -124,10 +134,30 @@ out %>%
     summary
   )
 
-## Median T7 = 245 hours 
-## median T8 = 129 hours
-## median T8 2 weeks = 10.8 
-## median all steam 2 weeks = 30 hours
+## Sep:
+## Median T7 = 240 - 245 hours 
+## median T8 = 240 hours
+## median T8 2 weeks = 8.7
+## median all steam 2 weeks = 26 hours
+
+out %>% 
+  filter(playtime_forever > 0) %>% ## people hiding hours
+  split(.$appid) %>%
+  map(
+    function(x){
+      # x$playtime_2weeks %>% quantile(1:10/10, na.rm = T)
+      x$playtime_forever %>% quantile(1:10/10, na.rm = T)
+    }
+  )
+## 80th percentile of 2 week platime in T8 is 23 hours
+## for EVERY game the median gaming hours is 26 hours (60th percentile is 34 hours)
+## For forever: T8 80th percntile is 400 and 90th is 547! -- big jumps
+## For T7 lifetime -- top 60th was 431 hours and top 80% was 1340 hours (70th was 725)
+
+
+
+
+
 
 ## save
 dir.create('steam data')
