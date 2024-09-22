@@ -93,6 +93,26 @@ all_only_df <-
 
 all_only_df$playtime_2weeks %>% quantile(seq(0, 1, 0.1), na.rm = T) %>% round(0)
 
+## distribution by T8
+cohort_hours_april %>%
+  replace_na(list(playtime_forever = '0') ) %>%
+  split(.$appid) %>%
+  map(
+    .f = function(x)
+      x$playtime_forever %>% 
+      as.numeric %>%
+      quantile(seq(0, 1, 0.1), na.rm = T) %>% round(0)
+    
+    )
+## 22/9
+## For T7 -- the percentiles are
+# $T8
+# 0%  10%  20%  30%  40%  50%  60%  70%  80%  90% 100% 
+# 0    4   37   65  101  144  198  273  373  529 1684 
+# 
+# $T7
+# 0%   10%   20%   30%   40%   50%   60%   70%   80%   90%  100% 
+# 0     0    12    35    79   164   333   595  1119  2123 10725   
 
 ## join times -----
 
